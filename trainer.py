@@ -1,3 +1,4 @@
+from email.mime import image
 import model
 import torch
 from torch import nn
@@ -7,25 +8,24 @@ device = torch.device('cpu')
 
 class trainer:
     def __init__(self):
-
-
-        self.net = model.ConvNet()
+        self.net = model.CSI_model()
         self.net.to(device)
 
         self.criterion = nn.CrossEntropyLoss()
 
-        self.optimizer = optim.Adam(self.net.parameters(), lr=0.01)
-        self.n_epochs = 4
+        self.optimizer = optim.Adam(self.net.parameters(), lr=0.0001)
+        self.n_epochs = 30
 
     def train(self,trainloader,testloader):
         accuracy = 0
         self.net.train()
+        accuracy = compute_accuracy(self.net, testloader)
+        print('Accuracy of the initial network on the 10000 test images: %d %%' % (100 * accuracy))
         for epoch in range(self.n_epochs):
             running_loss = 0.0
-            print_every = 200  # mini-batches
+            print_every = 1  # mini-batches
             for i, (inputs, labels) in enumerate(trainloader, 0):
                 # Transfer to GPU
-
                 inputs, labels = inputs.to(device), labels.to(device)
                 # zero the parameter gradients
                 self.optimizer.zero_grad()
@@ -58,9 +58,11 @@ def compute_accuracy(net, testloader):
     total = 0
     with torch.no_grad():
         for images, labels in testloader:
+            
             images, labels = images.to(device), labels.to(device)
             outputs = net(images)
             _, predicted = torch.max(outputs.data, 1)
+            # _, labels = torch.max(labels.data, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
     return correct / total

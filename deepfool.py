@@ -6,7 +6,7 @@ import numpy as np
 from torch.autograd import Variable
 import torch as torch
 import copy
-from torch.autograd.gradcheck import zero_gradients
+# from torch.autograd.gradcheck import zero_gradients
 
 
 def deepfool(image, net, num_classes, overshoot, max_iter):
@@ -49,7 +49,10 @@ def deepfool(image, net, num_classes, overshoot, max_iter):
         grad_orig = x.grad.data.cpu().numpy().copy()
 
         for k in range(1, num_classes):
-            zero_gradients(x)
+            # zero_gradients(x)
+
+            if x.grad is not None:
+                x.grad.zero_()
 
             fs[0, I[k]].backward(retain_graph=True)
             cur_grad = x.grad.data.cpu().numpy().copy()

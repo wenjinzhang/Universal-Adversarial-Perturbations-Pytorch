@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import adversarial_perturbation
 def main():
     trainer = trainer_module.trainer()
-    trainset,testset  = data_loader.load_data()
+    trainset, testset  = data_loader.load_CSI_data()
     accuracy = trainer.train(trainset,testset)
-    trainset, testset = data_loader.load_data()
+    trainset, testset = data_loader.load_CSI_data()
 
    
     v, fooling_rates, accuracies, total_iterations=adversarial_perturbation.generate(accuracy,trainset, testset, trainer.net)

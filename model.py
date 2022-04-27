@@ -1,6 +1,7 @@
+from http.client import ImproperConnectionState
 import torch.nn as nn
 import torch.nn.functional as F
-
+import torch
 
 class ConvNet(nn.Module):
     def __init__(self):
@@ -106,5 +107,64 @@ class ConvNet(nn.Module):
         x = self.fc1(x)
         return x
 
+class Attention(nn.Module):
+    def __init__(self, feature_dim, output_dim, bias=True, **kwargs):
+        super(Attention, self).__init__(**kwargs)
+        
+        self.supports_masking = True
 
+        self.bias = bias
+        self.feature_dim = feature_dim
+        self.output_dim = output_dim
+        self.features_dim = 0
+        
+        weight = torch.zeros(feature_dim, 1)
+        nn.init.kaiming_uniform_(weight)
+        self.weight = nn.Parameter(weight)
+        
+        if bias:
+            self.b = nn.Parameter(torch.zeros(output_dim))
+        
+    def forward(self, x, mask=None):
+        feature_dim = self.feature_dim 
+        output_dim = self.output_dim
 
+        eij = torch.mm(
+            x.contiguous().view(-1, feature_dim), 
+            self.weight
+        ).view(-1, output_dim)
+        
+        if self.bias:
+            eij = eij + self.b
+            
+        eij = torch.tanh(eij)
+        a = torch.exp(eij)
+        
+        if mask is not None:
+            a = a * mask
+
+        a = a / (torch.sum(a, 1, keepdim=True) + 1e-10)
+
+        weighted_input = x * torch.unsqueeze(a, -1)
+        return torch.sum(weighted_input, 1)
+
+class CSI_model(nn.Module):
+    def __init__(self):
+        super(CSI_model, self).__init__()
+        self.lstm = nn.LSTM(30, 200, 1, bidirectional=True, batch_first=True)
+
+    def forward(self, x):
+        # print(x.size())
+        x, (h,c) = self.lstm(x)
+        # print(x.size())
+        x = Attention(400, 500)(x)
+        x = F.relu(x)
+        x = nn.Linear(400, 4)(x)
+        return x
+
+if __name__ =='__main__':
+    import data_loader
+    trainloader, testloader = data_loader.load_CSI_data()
+    (x,y) = trainloader.dataset[0]
+    model = CSI_model()
+    print(model)
